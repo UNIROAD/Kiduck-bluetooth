@@ -91,6 +91,8 @@ void loop() {
   if (   (abs(tmp_AcX - AcX) > 3000)   ||    (  abs( tmp_AcY - AcY ) > 3000)    ){
                 steps++;
              }
+
+
   HM10.println(steps);
 
   tmp_AcX = AcX;
