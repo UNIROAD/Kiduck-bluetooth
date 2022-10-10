@@ -1,4 +1,4 @@
-//nano every -> master
+//nano every == master
 //at+role1
 
 #include <SoftwareSerial.h>
