@@ -4,9 +4,17 @@
 
 #define MASTER 1    //change this macro to define the Bluetooth as Master or not 
 
+#include <Wire.h>
+
 SoftwareSerial blueToothSerial(RxD,TxD);//the software serial port 
 
 char recv_str[100];
+
+const int MPU_addr=0x68;  // I2C address of the MPU-6050
+int16_t AcX,AcY;
+int steps = 0;
+int tmp_AcX;
+int tmp_AcY;
 
 void setup() 
 {
@@ -15,6 +23,15 @@ void setup()
     pinMode(TxD, OUTPUT);   //UART pin for Bluetooth
     Serial.println("\r\nPower on!!");
     setupBlueToothConnection(); //initialize Bluetooth
+    
+    // accel start----------------------------------
+    Wire.begin();
+    Wire.beginTransmission(MPU_addr);
+    Wire.write(0x6B);  // PWR_MGMT_1 register
+    Wire.write(0);     // set to zero (wakes up the MPU-6050)
+    Wire.endTransmission(true);
+    // accel end---------------------------------
+    
     //this block is waiting for connection was established.
 //    while(1)
 //    {
@@ -33,11 +50,26 @@ void setup()
 
 void loop() 
 {
+    Wire.beginTransmission(MPU_addr);
+    Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
+    Wire.endTransmission(false);
+    Wire.requestFrom(MPU_addr,14,true);  // request a total of 14 registers
+    AcX=Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
+    AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+//    AcZ=Wire.read()<<8|Wire.read();  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
+
+    if (   (abs(tmp_AcX - AcX) > 3000)   ||    (  abs( tmp_AcY - AcY ) > 3000)    ){
+                steps++;
+             }
+    tmp_AcX = AcX;
+    tmp_AcY = AcY;  
+   
     #if MASTER  //central role
     //in master mode, the bluetooth send message periodically. 
     delay(400);
-    Serial.println("send: hi");
-    blueToothSerial.print("hi");
+    Serial.println("send: Steps");
+//    blueToothSerial.print("hi");
+    blueToothSerial.print(steps);
     delay(100);
     //get any message to print
     if(recvMsg(1000) == 0)
